@@ -97,11 +97,49 @@ trait HasTags
      *
      * @return \Illuminate\Database\Eloquent\Builder
      */
+    public function scopeWithoutAllTags(Builder $query, $tags, string $type = null): Builder
+    {
+        $tags = static::convertToTags($tags, $type);
+
+        collect($tags)->each(function ($tag) use ($query) {
+            $query->whereNotIn("{$this->getTable()}.{$this->getKeyName()}", function ($query) use ($tag) {
+                $query->from('taggables')
+                    ->select('taggables.taggable_id')
+                    ->where('taggables.tag_id', $tag ? $tag->id : 0);
+            });
+        });
+
+        return $query;
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param array|\ArrayAccess|\Spatie\Tags\Tag $tags
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
     public function scopeWithAnyTags(Builder $query, $tags, string $type = null): Builder
     {
         $tags = static::convertToTags($tags, $type);
 
         return $query->whereHas('tags', function (Builder $query) use ($tags) {
+            $tagIds = collect($tags)->pluck('id');
+
+            $query->whereIn('tags.id', $tagIds);
+        });
+    }
+
+    /**
+     * @param \Illuminate\Database\Eloquent\Builder $query
+     * @param array|\ArrayAccess|\Spatie\Tags\Tag $tags
+     *
+     * @return \Illuminate\Database\Eloquent\Builder
+     */
+    public function scopeWithoutAnyTags(Builder $query, $tags, string $type = null): Builder
+    {
+        $tags = static::convertToTags($tags, $type);
+
+        return $query->whereDoesntHave('tags', function (Builder $query) use ($tags) {
             $tagIds = collect($tags)->pluck('id');
 
             $query->whereIn('tags.id', $tagIds);

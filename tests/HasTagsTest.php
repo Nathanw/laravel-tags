@@ -154,6 +154,31 @@ class HasTagsTest extends TestCase
     }
 
     /** @test */
+    public function it_provides_as_scope_to_get_all_models_that_dont_have_any_of_the_given_tags_2()
+    {
+        TestModel::create([
+            'name' => 'model1',
+            'tags' => ['tagA'],
+        ]);
+
+        TestModel::create([
+            'name' => 'model2',
+            'tags' => ['tagA', 'tagB'],
+        ]);
+
+        TestModel::create([
+            'name' => 'model3',
+            'tags' => ['tagA', 'tagB', 'tagC'],
+        ]);
+
+        $testModels = TestModel::withoutAnyTags(['tagB', 'tagC']);
+
+        $this->assertTrue($testModels->where('name', 'model1')->exists());
+
+        $this->assertTrue($testModels->whereIn('name', ['model2', 'model3'])->doesntExist());
+    }
+
+    /** @test */
     public function it_provides_a_scope_to_get_all_models_that_have_any_of_the_given_tag_instances()
     {
         $tag = Tag::findOrCreate('tagA', 'typeA');
@@ -165,6 +190,47 @@ class HasTagsTest extends TestCase
         $testModels = TestModel::withAnyTags([$tag]);
 
         $this->assertEquals(['model1'], $testModels->pluck('name')->toArray());
+    }
+
+    /** @test */
+    public function it_provides_a_scope_to_get_all_models_that_dont_have_any_of_the_given_tag_instances()
+    {
+        $tag = Tag::findOrCreate('tagA', 'typeA');
+
+        TestModel::create([
+            'name' => 'model1',
+        ])->attachTag($tag);
+
+        $testModels = TestModel::withoutAnyTags([$tag]);
+
+        $this->assertTrue($testModels->whereIn('name', ['model1'])->doesntExist());
+    }
+
+    public function it_provides_a_scope_to_get_all_models_that_dont_have_all_of_the_given_tags()
+    {
+        TestModel::create([
+            'name' => 'model1',
+            'tags' => ['tagA'],
+        ]);
+
+        TestModel::create([
+            'name' => 'model2',
+            'tags' => ['tagB'],
+        ]);
+
+        TestModel::create([
+            'name' => 'model3',
+            'tags' => ['tagB', 'tagC'],
+        ]);
+
+        TestModel::create([
+            'name' => 'model4',
+            'tags' => ['tagA', 'tagB', 'tagC'],
+        ]);
+
+        $testModels = TestModel::withoutAllTags(['tagB', 'tagC']);
+
+        $this->assertEquals(['model1', 'model2'], $testModels->pluck('name')->toArray());
     }
 
     /** @test */
